@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import useVehicles from './Vehicle.hook';
+import React, { useEffect } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
 import { 
   Container, 
   Input, 
@@ -9,135 +9,235 @@ import {
   ButtonContainer,
   FloatingAddButton
 } from './Vehicle.styles';
-import { MenuItem, TableHead, TableRow, TableCell, TableBody, Box, Select, FormControl, InputLabel } from '@mui/material';
-import { useNavigate } from 'react-router-dom';  // Importar useNavigate para redirección
-import { Add } from '@mui/icons-material'; // Importar el ícono de "+"
+import { MenuItem, TableHead, TableRow, TableCell, TableBody, Box, CircularProgress, Alert } from '@mui/material';
+import { useNavigate } from 'react-router-dom';
+import { Add } from '@mui/icons-material';
 import NoData from '../../utils/NoData';
+import { 
+  fetchAllVehicles,
+  reloadVehicles,
+  setSearch,
+  setStatusFilter,
+  setCurrentPage,
+  selectFilteredAndPaginatedVehicles,
+  selectVehiclesLoading,
+  selectVehiclesError,
+  selectSearch,
+  selectStatusFilter,
+  selectCurrentPage,
+} from '../../store/slices/vehiclesSlice';
 
 const VehicleList = () => {
-  const [search, setSearch] = useState('');
-  const [statusFilter, setStatusFilter] = useState('Todos');
-  const [page, setPage] = useState(1);
-  const [searchType, setSearchType] = useState('placa');  // Nuevo estado para seleccionar el tipo de búsqueda
-  const navigate = useNavigate();  // Inicializar el hook de navegación
+  const dispatch = useDispatch();
+  const navigate = useNavigate();
 
-  // Traemos los vehículos con la paginación y filtros aplicados
-  const vehicles = useVehicles(search, statusFilter, page, searchType);
+  // Selectors
+  const { vehicles, totalCount, totalPages } = useSelector(selectFilteredAndPaginatedVehicles);
+  const loading = useSelector(selectVehiclesLoading);
+  const error = useSelector(selectVehiclesError);
+  const search = useSelector(selectSearch);
+  const statusFilter = useSelector(selectStatusFilter);
+  const currentPage = useSelector(selectCurrentPage);
 
-  // Función para manejar el cambio de página
+  // Effects
+  useEffect(() => {
+    dispatch(fetchAllVehicles());
+  }, [dispatch]);
+
+  useEffect(() => {
+    const handleVehicleUpdate = () => {
+      dispatch(reloadVehicles());
+    };
+
+    window.addEventListener('vehicleUpdated', handleVehicleUpdate);
+    return () => {
+      window.removeEventListener('vehicleUpdated', handleVehicleUpdate);
+    };
+  }, [dispatch]);
+
+  // Event handlers
+  const handleSearchChange = (e) => {
+    dispatch(setSearch(e.target.value));
+  };
+
+  const handleStatusFilterChange = (e) => {
+    dispatch(setStatusFilter(e.target.value));
+  };
+
   const handlePageChange = (newPage) => {
-    if (newPage >= 1) {
-      setPage(newPage);
+    if (newPage >= 1 && newPage <= totalPages) {
+      dispatch(setCurrentPage(newPage));
     }
   };
 
-  // Función para manejar el clic en una fila
   const handleRowClick = (id) => {
-    navigate(`/vehicles/${id}`);  // Redirige al detalle del vehículo con el ID correspondiente
+    navigate(`/vehicles/${id}`);
   };
 
-  // Función para manejar el clic en el botón flotante
   const handleAddVehicle = () => {
-    navigate('/vehicles/new');  // Redirige a la página de crear vehículo
+    navigate('/vehicles/new');
   };
 
   return (
     <Container>
-      {/* Barra de búsqueda */}
-      <Box sx={{ display: 'flex', gap: '10px', marginBottom: '20px' }}>
-        <FormControl fullWidth>
-          <InputLabel>Buscar por</InputLabel>
-          <Select
-            value={searchType}
-            onChange={(e) => setSearchType(e.target.value)}
-            label="Buscar por"
-          >
-            <MenuItem value="placa">Placa</MenuItem>
-            <MenuItem value="marca">Marca</MenuItem>
-            <MenuItem value="modelo">Modelo</MenuItem>
-          </Select>
-        </FormControl>
-
+      {/* Barra de búsqueda y filtros */}
+      <Box sx={{ 
+        display: 'flex', 
+        gap: '10px', 
+        marginBottom: '20px',
+        flexDirection: { xs: 'column', md: 'row' }
+      }}>
         <Input 
           type="text" 
           value={search} 
-          onChange={(e) => setSearch(e.target.value)} 
-          placeholder={`Buscar por ${searchType}`}
+          onChange={handleSearchChange} 
+          placeholder="Buscar por placa, marca o modelo..."
           variant="outlined"
           fullWidth
         />
+        
+        <FilterSelect
+          value={statusFilter} 
+          onChange={handleStatusFilterChange} 
+          variant="outlined"
+          sx={{ minWidth: { xs: '100%', md: '200px' } }}
+        >
+          <MenuItem value="Todos">Todos</MenuItem>
+          <MenuItem value="Disponible">Disponible</MenuItem>
+          <MenuItem value="En mantenimiento">En mantenimiento</MenuItem>
+          <MenuItem value="En servicio">En servicio</MenuItem>
+          <MenuItem value="Taller">Taller</MenuItem>
+        </FilterSelect>
       </Box>
 
-      {/* Filtro de estado */}
-      <FilterSelect
-        value={statusFilter} 
-        onChange={(e) => setStatusFilter(e.target.value)} 
-        variant="outlined"
-      >
-        <MenuItem value="Todos">Todos</MenuItem>
-        <MenuItem value="Disponible">Disponible</MenuItem>
-        <MenuItem value="En mantenimiento">En mantenimiento</MenuItem>
-        <MenuItem value="En servicio">En servicio</MenuItem>
-        <MenuItem value="Taller">Taller</MenuItem>
-      </FilterSelect>
+      {/* Mostrar error si existe */}
+      {error && (
+        <Alert severity="error" sx={{ marginBottom: 2 }}>
+          {error}
+        </Alert>
+      )}
 
-      {/* Tabla de vehículos */}
-      <TableStyled>
-        <TableHead>
-          <TableRow>
-            <TableCell>Placa</TableCell>
-            <TableCell>Marca</TableCell>
-            <TableCell>Modelo</TableCell>
-            <TableCell>Año</TableCell>
-            <TableCell>Estado</TableCell>
-          </TableRow>
-        </TableHead>
-        <TableBody>
-          {vehicles.length === 0 ? (
-            <TableRow>
-              <TableCell colSpan={5}>
-                <NoData />
-              </TableCell>
-            </TableRow>
-          ) : (
-            vehicles.map((vehicle) => (
-              <TableRow 
-                key={vehicle.id} 
-                onClick={() => handleRowClick(vehicle.id)}  // Añadir el manejador de clic
-                sx={{
-                  cursor: 'pointer',  // Cambiar el cursor para indicar que es clickeable
-                  '&:hover': {
-                    backgroundColor: '#f5f5f5',  // Color de fondo en hover
-                  },
-                }}
-              >
-                <TableCell>{vehicle.licensePlate}</TableCell>
-                <TableCell>{vehicle.make}</TableCell>
-                <TableCell>{vehicle.model}</TableCell>
-                <TableCell>{vehicle.year}</TableCell>
-                <TableCell>{vehicle.status}</TableCell>
-              </TableRow>
-            ))
-          )}
-        </TableBody>
-      </TableStyled>
+      {/* Mostrar loading o tabla */}
+      {loading ? (
+        <Box sx={{ display: 'flex', justifyContent: 'center', padding: 4 }}>
+          <CircularProgress />
+        </Box>
+      ) : (
+        <>
+          {/* Tabla de vehículos */}
+          <Box sx={{ 
+            overflowX: 'auto',
+            '& .MuiTable-root': {
+              minWidth: { xs: 400, sm: 600 }
+            }
+          }}>
+            <TableStyled>
+              <TableHead>
+                <TableRow>
+                  <TableCell sx={{ 
+                    fontWeight: 'bold',
+                    fontSize: { xs: '12px', sm: '14px' }
+                  }}>
+                    Placa
+                  </TableCell>
+                  <TableCell sx={{ 
+                    fontWeight: 'bold',
+                    fontSize: { xs: '12px', sm: '14px' }
+                  }}>
+                    Marca
+                  </TableCell>
+                  <TableCell sx={{ 
+                    fontWeight: 'bold',
+                    fontSize: { xs: '12px', sm: '14px' }
+                  }}>
+                    Modelo
+                  </TableCell>
+                  <TableCell sx={{ 
+                    fontWeight: 'bold',
+                    fontSize: { xs: '12px', sm: '14px' }
+                  }}>
+                    Año
+                  </TableCell>
+                  <TableCell sx={{ 
+                    fontWeight: 'bold',
+                    fontSize: { xs: '12px', sm: '14px' }
+                  }}>
+                    Estado
+                  </TableCell>
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {vehicles.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={5}>
+                      <NoData />
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  vehicles.map((vehicle) => (
+                    <TableRow 
+                      key={vehicle.id} 
+                      onClick={() => handleRowClick(vehicle.id)}
+                      sx={{
+                        cursor: 'pointer',
+                        '&:hover': {
+                          backgroundColor: '#f5f5f5',
+                        },
+                      }}
+                    >
+                      <TableCell sx={{ fontSize: { xs: '12px', sm: '14px' } }}>
+                        {vehicle.licensePlate}
+                      </TableCell>
+                      <TableCell sx={{ fontSize: { xs: '12px', sm: '14px' } }}>
+                        {vehicle.make}
+                      </TableCell>
+                      <TableCell sx={{ fontSize: { xs: '12px', sm: '14px' } }}>
+                        {vehicle.model}
+                      </TableCell>
+                      <TableCell sx={{ fontSize: { xs: '12px', sm: '14px' } }}>
+                        {vehicle.year}
+                      </TableCell>
+                      <TableCell sx={{ fontSize: { xs: '12px', sm: '14px' } }}>
+                        {vehicle.status}
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </TableStyled>
+          </Box>
 
-      {/* Paginación */}
-      <ButtonContainer>
-        <ButtonStyled 
-          onClick={() => handlePageChange(page - 1)} 
-          disabled={page === 1}  // Deshabilitar si estamos en la primera página
-          variant="outlined"
-        >
-          Anterior
-        </ButtonStyled>
-        <ButtonStyled 
-          onClick={() => handlePageChange(page + 1)} 
-          variant="outlined"
-        >
-          Siguiente
-        </ButtonStyled>
-      </ButtonContainer>
+          {/* Paginación */}
+          <ButtonContainer>
+            <ButtonStyled 
+              onClick={() => handlePageChange(currentPage - 1)} 
+              disabled={currentPage === 1}
+              variant="outlined"
+            >
+              Anterior
+            </ButtonStyled>
+            
+            <Box sx={{ 
+              display: 'flex', 
+              alignItems: 'center', 
+              gap: 1,
+              flexDirection: { xs: 'column', sm: 'row' },
+              fontSize: { xs: '12px', sm: '14px' }
+            }}>
+              <span>Página {currentPage} de {totalPages}</span>
+              <span>({totalCount} vehículos total)</span>
+            </Box>
+            
+            <ButtonStyled 
+              onClick={() => handlePageChange(currentPage + 1)} 
+              disabled={currentPage >= totalPages}
+              variant="outlined"
+            >
+              Siguiente
+            </ButtonStyled>
+          </ButtonContainer>
+        </>
+      )}
 
       {/* Botón flotante para agregar vehículo */}
       <FloatingAddButton

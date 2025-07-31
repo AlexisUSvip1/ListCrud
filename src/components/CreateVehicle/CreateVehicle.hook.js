@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import axios from 'axios';
+import { vehicleService, triggerVehicleUpdate } from '../../utils/api';
 
 const useCreateVehicle = (onSuccess) => {
   const [licensePlate, setLicensePlate] = useState('');
@@ -36,10 +36,11 @@ const useCreateVehicle = (onSuccess) => {
         gpsActive
       };
       
-      await axios.post('http://localhost:3001/vehicles', newVehicle);
+      await vehicleService.createVehicle(newVehicle);
+      triggerVehicleUpdate();
       if (onSuccess) onSuccess();
     } catch (err) {
-      setError('No se pudo registrar el vehículo.');
+      setError(err.message);
     } finally {
       setLoading(false);
     }

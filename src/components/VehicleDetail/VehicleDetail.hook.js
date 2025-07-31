@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import axios from 'axios';
+import { vehicleService, triggerVehicleUpdate, triggerVehicleStatusUpdate } from '../../utils/api';
 
 const useVehicleDetail = (id, navigate) => {
   const [vehicle, setVehicle] = useState(null);
@@ -9,15 +9,16 @@ const useVehicleDetail = (id, navigate) => {
   const [error, setError] = useState(null);
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [editForm, setEditForm] = useState({});
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
 
   useEffect(() => {
     const fetchVehicle = async () => {
       try {
-        const response = await axios.get(`http://localhost:3001/vehicles/${id}`);
-        setVehicle(response.data);
-        setEditForm(response.data); // Inicializar el formulario con los datos del vehículo
+        const vehicleData = await vehicleService.getVehicleById(id);
+        setVehicle(vehicleData);
+        setEditForm(vehicleData); // Inicializar el formulario con los datos del vehículo
       } catch (err) {
-        setError('Error al obtener los datos del vehículo.');
+        setError(err.message);
       } finally {
         setLoading(false);
       }
@@ -29,28 +30,30 @@ const useVehicleDetail = (id, navigate) => {
   const handleStatusChange = async (newStatus) => {
     try {
       setUpdating(true);
-      await axios.put(`http://localhost:3001/vehicles/${id}`, {
-        ...vehicle,
-        status: newStatus,
-      });
       setVehicle((prev) => ({ ...prev, status: newStatus }));
     } catch (err) {
-      setError('No se pudo actualizar el estado.');
+      setError(err.message);
     } finally {
       setUpdating(false);
     }
   };
 
-  const handleDelete = async () => {
-    const confirm = window.confirm('¿Estás seguro de que deseas eliminar este vehículo?');
-    if (!confirm) return;
+  const openDeleteModal = () => {
+    setDeleteModalOpen(true);
+  };
 
+  const closeDeleteModal = () => {
+    setDeleteModalOpen(false);
+  };
+
+  const handleDelete = async () => {
     try {
       setDeleting(true);
-      await axios.delete(`http://localhost:3001/vehicles/${id}`);
+      await vehicleService.deleteVehicle(id);
+      setDeleteModalOpen(false);
       navigate('/');
     } catch (err) {
-      setError('Error al eliminar el vehículo.');
+      setError(err.message);
     } finally {
       setDeleting(false);
     }
@@ -86,15 +89,14 @@ const useVehicleDetail = (id, navigate) => {
   const handleSaveEdit = async () => {
     try {
       setUpdating(true);
-      await axios.put(`http://localhost:3001/vehicles/${id}`, editForm);
       setVehicle(editForm);
       setEditModalOpen(false);
       // Recargar la lista de vehículos en la página principal
-      window.dispatchEvent(new CustomEvent('vehicleUpdated'));
+      triggerVehicleUpdate();
       // También disparar un evento para actualizar el estado local
-      window.dispatchEvent(new CustomEvent('vehicleStatusUpdated', { detail: editForm.status }));
+      triggerVehicleStatusUpdate(editForm.status);
     } catch (err) {
-      setError('Error al actualizar el vehículo.');
+      setError(err.message);
     } finally {
       setUpdating(false);
     }
@@ -108,10 +110,13 @@ const useVehicleDetail = (id, navigate) => {
     error,
     editModalOpen,
     editForm,
+    deleteModalOpen,
     handleStatusChange,
     handleDelete,
     openEditModal,
     closeEditModal,
+    openDeleteModal,
+    closeDeleteModal,
     handleEditFormChange,
     handleLocationChange,
     handleSaveEdit,

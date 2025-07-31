@@ -4,7 +4,7 @@ import {
   DialogTitle, 
   DialogContent, 
   DialogActions, 
-  Button 
+  Button,
 } from '@mui/material';
 import { styled } from '@mui/material/styles';
 
@@ -22,8 +22,10 @@ const Modal = ({
   children, 
   onSave, 
   onCancel,
+  onBack,
   saveText = "Guardar",
   cancelText = "Cancelar",
+  backText = "Atrás",
   loading = false,
   maxWidth = "md",
   fullWidth = true
