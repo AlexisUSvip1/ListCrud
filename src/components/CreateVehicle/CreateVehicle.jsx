@@ -1,78 +1,147 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import useCreateVehicle from './CreateVehicle.hook';
+import { 
+  Container, 
+  Title, 
+  InputField, 
+  StatusSelect, 
+  SubmitButton, 
+  ErrorText,
+  LocationContainer,
+  LocationField,
+  SwitchContainer
+} from './CreateVehicle.styles';
+import { MenuItem, FormControlLabel, Switch } from '@mui/material';
 
 const CreateVehicle = () => {
   const navigate = useNavigate();
 
   const {
-    plate, setPlate,
-    brand, setBrand,
+    licensePlate, setLicensePlate,
+    make, setMake,
     model, setModel,
     year, setYear,
     status, setStatus,
+    lastService, setLastService,
+    odometer, setOdometer,
+    locationLat, setLocationLat,
+    locationLng, setLocationLng,
+    gpsActive, setGpsActive,
     handleSubmit,
     loading,
     error,
   } = useCreateVehicle(() => navigate('/'));
 
   return (
-    <div className="container mx-auto p-4">
-      <h2 className="text-2xl font-bold mb-4">Registrar nuevo vehículo</h2>
+    <Container>
+      <Title>Registrar nuevo vehículo</Title>
 
-      <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-        <input
-          type="text"
-          value={plate}
-          onChange={(e) => setPlate(e.target.value)}
-          placeholder="Placa"
+      <form onSubmit={handleSubmit}>
+        <InputField
+          label="Placa"
+          value={licensePlate}
+          onChange={(e) => setLicensePlate(e.target.value)}
           required
-          className="border p-2"
+          fullWidth
         />
-        <input
-          type="text"
-          value={brand}
-          onChange={(e) => setBrand(e.target.value)}
-          placeholder="Marca"
+        
+        <InputField
+          label="Marca"
+          value={make}
+          onChange={(e) => setMake(e.target.value)}
           required
-          className="border p-2"
+          fullWidth
         />
-        <input
-          type="text"
+        
+        <InputField
+          label="Modelo"
           value={model}
           onChange={(e) => setModel(e.target.value)}
-          placeholder="Modelo"
           required
-          className="border p-2"
+          fullWidth
         />
-        <input
+        
+        <InputField
+          label="Año"
           type="number"
           value={year}
           onChange={(e) => setYear(e.target.value)}
-          placeholder="Año"
           required
-          className="border p-2"
+          fullWidth
         />
-        <select
+        
+        <StatusSelect
           value={status}
           onChange={(e) => setStatus(e.target.value)}
-          className="border p-2"
+          fullWidth
         >
-          <option value="Disponible">Disponible</option>
-          <option value="En mantenimiento">En mantenimiento</option>
-        </select>
+          <MenuItem value="Disponible">Disponible</MenuItem>
+          <MenuItem value="En mantenimiento">En mantenimiento</MenuItem>
+          <MenuItem value="En servicio">En servicio</MenuItem>
+          <MenuItem value="Taller">Taller</MenuItem>
+        </StatusSelect>
+        
+        <InputField
+          label="Último servicio"
+          type="date"
+          value={lastService}
+          onChange={(e) => setLastService(e.target.value)}
+          fullWidth
+          InputLabelProps={{ shrink: true }}
+        />
+        
+        <InputField
+          label="Kilometraje"
+          type="number"
+          value={odometer}
+          onChange={(e) => setOdometer(e.target.value)}
+          required
+          fullWidth
+        />
+        
+        <LocationContainer>
+          <LocationField
+            label="Latitud"
+            type="number"
+            value={locationLat}
+            onChange={(e) => setLocationLat(e.target.value)}
+            required
+            fullWidth
+          />
+          <LocationField
+            label="Longitud"
+            type="number"
+            value={locationLng}
+            onChange={(e) => setLocationLng(e.target.value)}
+            required
+            fullWidth
+          />
+        </LocationContainer>
+        
+        <SwitchContainer>
+          <FormControlLabel
+            control={
+              <Switch
+                checked={gpsActive}
+                onChange={(e) => setGpsActive(e.target.checked)}
+              />
+            }
+            label="GPS Activo"
+          />
+        </SwitchContainer>
 
-        <button
+        <SubmitButton
           type="submit"
           disabled={loading}
-          className="bg-green-500 text-white px-4 py-2 rounded disabled:opacity-50"
+          fullWidth
         >
           {loading ? 'Registrando...' : 'Registrar'}
-        </button>
+        </SubmitButton>
 
-        {error && <p className="text-red-600">{error}</p>}
+        {error && <ErrorText>{error}</ErrorText>}
       </form>
-    </div>
+    </Container>
   );
 };
 

@@ -2,11 +2,16 @@ import { useState } from 'react';
 import axios from 'axios';
 
 const useCreateVehicle = (onSuccess) => {
-  const [plate, setPlate] = useState('');
-  const [brand, setBrand] = useState('');
+  const [licensePlate, setLicensePlate] = useState('');
+  const [make, setMake] = useState('');
   const [model, setModel] = useState('');
   const [year, setYear] = useState('');
   const [status, setStatus] = useState('Disponible');
+  const [lastService, setLastService] = useState('');
+  const [odometer, setOdometer] = useState('');
+  const [locationLat, setLocationLat] = useState('');
+  const [locationLng, setLocationLng] = useState('');
+  const [gpsActive, setGpsActive] = useState(true);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
@@ -16,7 +21,21 @@ const useCreateVehicle = (onSuccess) => {
     setError(null);
 
     try {
-      const newVehicle = { plate, brand, model, year, status };
+      const newVehicle = {
+        licensePlate,
+        make,
+        model,
+        year: parseInt(year),
+        status,
+        lastService,
+        odometer: parseInt(odometer),
+        location: {
+          lat: parseFloat(locationLat),
+          lng: parseFloat(locationLng)
+        },
+        gpsActive
+      };
+      
       await axios.post('http://localhost:3001/vehicles', newVehicle);
       if (onSuccess) onSuccess();
     } catch (err) {
@@ -27,11 +46,16 @@ const useCreateVehicle = (onSuccess) => {
   };
 
   return {
-    plate, setPlate,
-    brand, setBrand,
+    licensePlate, setLicensePlate,
+    make, setMake,
     model, setModel,
     year, setYear,
     status, setStatus,
+    lastService, setLastService,
+    odometer, setOdometer,
+    locationLat, setLocationLat,
+    locationLng, setLocationLng,
+    gpsActive, setGpsActive,
     handleSubmit,
     loading,
     error,

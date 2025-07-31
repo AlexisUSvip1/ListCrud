@@ -6,7 +6,7 @@
       "make": "Toyota",
       "model": "Corolla",
       "year": 2021,
-      "status": "Disponible",
+      "status": "Taller",
       "location": {
         "lat": 19.4326,
         "lng": -99.1332
@@ -21,7 +21,7 @@
       "make": "Nissan",
       "model": "Sentra",
       "year": 2019,
-      "status": "En servicio",
+      "status": "En mantenimiento",
       "location": {
         "lat": 19.4286,
         "lng": -99.1342
@@ -51,7 +51,7 @@
       "make": "Volkswagen",
       "model": "Jetta",
       "year": 2021,
-      "status": "En servicio",
+      "status": "Disponible",
       "location": {
         "lat": 19.4311,
         "lng": -99.1338
@@ -81,7 +81,7 @@
       "make": "Kia",
       "model": "Rio",
       "year": 2018,
-      "status": "Taller",
+      "status": "Disponible",
       "location": {
         "lat": 19.4282,
         "lng": -99.136
